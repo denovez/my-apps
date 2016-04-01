@@ -1,13 +1,18 @@
-image: mischief/docker-golang
-env:
-  - GOPATH=/var/cache/drone
-script:
-  - go build
-  - go test -v
-services:
-  - redis
-notify:
-  email:
-    recipients:
-      - brad@drone.io
-      - burke@drone.io
+build:
+  image: bradrydzewski/ruby:2.1.1
+  script:
+    - cp config/database.drone.yml config/database.yml
+    - mkdir -p /tmp/bundler
+    - sudo chown ubuntu:ubuntu /tmp/bundler
+    - bundle install --path=/tmp/bundler --deployment --quiet
+    - mysql -u root -h127.0.0.1 -P 3306 -e 'create database rails_app_test;'
+    - mysql -u root -h127.0.0.1 -P 3306 -D rails_app_test < ./db/structure.sql
+    - bundle exec rspec spec
+  services:
+    - mysql
+  cache:
+    - /tmp/bundler
+  notify:
+    email:
+      recipients:
+        - our.team.emails@example.com
